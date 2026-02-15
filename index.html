@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ABC Trading Company</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+background:linear-gradient(to bottom,#e0f2fe,#bae6fd);
+}
+.fade{
+animation:fadeIn 0.8s ease-in-out;
+}
+@keyframes fadeIn{
+from{opacity:0; transform:translateY(15px);}
+to{opacity:1; transform:translateY(0);}
+}
+</style>
+</head>
+
+<body class="flex flex-col items-center justify-center min-h-screen text-sky-900">
+
+<h1 class="text-4xl font-bold mb-6 fade text-center">
+Welcome to ABC Trading Company
+</h1>
+
+<div class="bg-white p-6 rounded shadow text-center fade">
+<h2 class="text-xl font-semibold mb-3">Shop Timings</h2>
+<p>Open all days from <b>9:00 AM - 7:00 PM</b></p>
+<p class="text-red-600 font-semibold mt-2">Sunday Off</p>
+</div>
+
+<a href="reviews.html"
+class="fixed bottom-8 right-8 bg-sky-500 text-white px-6 py-3 rounded shadow hover:scale-105 transition">
+Go to Review Page
+</a>
+
+</body>
+</html>
