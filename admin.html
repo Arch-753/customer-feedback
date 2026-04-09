@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* Soothing Static Dark Background */
+body {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    background-attachment: fixed;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+}
+.watermark {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 80px;
+    opacity: 0.03;
+    font-weight: bold;
+    color: white;
+    pointer-events: none;
+}
+.fade{animation:fadeIn 0.5s ease-in-out;}
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(15px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
+/* Glassmorphism Classes */
+.glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+.glass-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+}
+.glass-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.glow-text { text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+</style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen">
+
+<div class="watermark">ABC Trading Company</div>
+
+<!-- MAIN LOGIN/CREATE BOX -->
+<div id="loginBox" class="glass p-8 rounded-2xl shadow-xl w-96 text-center fade">
+
+<h2 id="adminTitle" class="text-3xl font-extrabold mb-2 glow-text">Admin Login</h2>
+<p id="adminSubtitle" class="text-sm text-indigo-200 mb-6">Enter details to access the dashboard</p>
+
+<!-- Create / Login Form -->
+<form id="adminForm" class="space-y-4">
+    <input type="text" id="adminPhone" placeholder="Phone Number (Login ID)" 
+        class="w-full p-3 rounded-lg glass-input font-bold" required>
+        
+    <input type="password" id="adminPassword" placeholder="Password" 
+        class="w-full p-3 rounded-lg glass-input font-bold" required>
+
+    <button type="submit" id="adminSubmitBtn"
+        class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 rounded-xl hover:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1">
+        Login
+    </button>
+</form>
+
+<p id="forgotBtn" onclick="openForgotBox()" class="hidden mt-6 text-sm text-indigo-300 hover:text-white cursor-pointer font-bold transition">
+Forgot Password?
+</p>
+
+</div>
+
+
+<!-- FORGOT PASSWORD BOX -->
+<div id="forgotBox" class="hidden glass p-8 rounded-2xl shadow-xl w-96 text-center fade">
+
+<h2 class="text-3xl font-extrabold mb-2 glow-text">Reset Password</h2>
+<p class="text-sm text-indigo-200 mb-6">We'll text an OTP to your registered phone</p>
+
+<!-- Step 1: Request OTP -->
+<div id="otpRequestSection" class="space-y-4">
+    <input type="text" id="forgotPhone" placeholder="Enter Registered Phone" 
+        class="w-full p-3 rounded-lg glass-input font-bold">
+    <button onclick="requestOTP()" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 rounded-xl hover:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1">
+        Send OTP SMS
+    </button>
+</div>
+
+<!-- Step 2: Verify & Reset (Hidden initially) -->
+<div id="otpVerifySection" class="hidden space-y-4 mt-2">
+    <input type="text" id="otpCode" placeholder="Enter 4-Digit OTP" autocomplete="off"
+        class="w-full p-3 rounded-lg glass-input font-mono text-center tracking-widest text-xl font-bold">
+    <input type="password" id="newPassword" placeholder="Enter New Password" 
+        class="w-full p-3 rounded-lg glass-input font-bold">
+    <button onclick="verifyResetOTP()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-3 rounded-xl hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all hover:-translate-y-1">
+        Confirm & Reset Password
+    </button>
+</div>
+
+<p onclick="closeForgotBox()" class="mt-6 text-sm text-indigo-300 hover:text-white cursor-pointer font-bold transition">
+Back to Login
+</p>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

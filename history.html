@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Customer Review History</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* Soothing Static Dark Background */
+body {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    background-attachment: fixed;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+}
+
+.fade{animation:fadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity:0;}
+@keyframes fadeIn{
+    from{opacity:0;transform:translateY(15px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+/* Glassmorphism Classes */
+.glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+.glass-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+}
+.glass-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.glow-text { text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+</style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center py-10 px-4">
+
+<h1 class="text-4xl md:text-5xl font-extrabold text-center mb-8 fade glow-text tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-100 to-indigo-100" style="animation-delay: 0.1s;">
+Previous Reviews
+</h1>
+
+<!-- Search Form -->
+<div id="historySearchBox" class="w-full max-w-md glass p-8 rounded-2xl fade" style="animation-delay: 0.2s;">
+    <p class="text-sm text-indigo-200 mb-6 text-center">To view your past reviews, please enter your details.</p>
+    <form id="historyForm" class="space-y-4">
+        <div>
+            <label class="font-bold text-sm text-indigo-100">Firm's Name</label>
+            <input id="historyFirm" type="text" class="w-full p-3 rounded-lg glass-input mt-1" required>
+        </div>
+        <div>
+            <label class="font-bold text-sm text-indigo-100">Customer's Name</label>
+            <input id="historyCustomer" type="text" class="w-full p-3 rounded-lg glass-input mt-1" required>
+        </div>
+        <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 rounded-xl hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1 mt-4 text-lg">Fetch Reviews</button>
+    </form>
+    <a href="reviews.html" class="block text-center mt-6 text-indigo-200 hover:text-white transition drop-shadow text-sm font-semibold">← Back to Write a Review</a>
+</div>
+
+<!-- Results Area -->
+<div id="historyResultsBox" class="hidden w-full max-w-2xl mt-8 fade">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-white glow-text" id="historyHeader"></h2>
+        <button onclick="location.reload()" class="text-sm border border-white/20 hover:bg-white/10 text-white px-4 py-2 rounded-lg font-bold transition">Change Details</button>
+    </div>
+    
+    <div id="historyList" class="space-y-6">
+        <!-- Rendered via JS -->
+    </div>
+</div>
+
+<script>
+document.getElementById("historyForm").onsubmit = async function(e) {
+    e.preventDefault();
+    let firm = document.getElementById("historyFirm").value.trim();
+    let cust = document.getElementById("historyCustomer").value.trim();
+    
+    let submitBtn = this.querySelector('button');
+    submitBtn.innerText = "Loading...";
+    
+    try {
+        let res = await fetch(`/api/reviews/search?firmName=${encodeURIComponent(firm)}&customerName=${encodeURIComponent(cust)}`);
+        let data = await res.json();
+        
+        document.getElementById("historySearchBox").classList.add("hidden");
+        document.getElementById("historyResultsBox").classList.remove("hidden");
+        document.getElementById("historyHeader").innerText = `Reviews for ${cust} (${firm})`;
+        
+        let listStr = "";
+        if(data.length === 0) {
+            listStr = `<div class="glass p-8 rounded-2xl text-center"><p class="text-indigo-200 font-semibold text-lg">No reviews found for this firm and customer.</p></div>`;
+        } else {
+            data.forEach(r => {
+                let adminReplyBlock = "";
+                if(r.adminReply && r.adminReply.trim() !== "") {
+                    adminReplyBlock = `
+                    <div class="mt-6 bg-white/10 border border-white/20 p-4 rounded-xl ml-4 relative">
+                        <span class="absolute -top-3 left-4 bg-indigo-600/80 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-indigo-400">Shopkeeper's Reply</span>
+                        <p class="text-indigo-50 mt-1 italic pl-3 border-l-2 border-indigo-400">"${r.adminReply}"</p>
+                    </div>`;
+                }
+                
+                listStr += `
+                <div class="glass p-6 rounded-2xl hover:shadow-[0_4px_30px_rgba(79,70,229,0.3)] transition-all">
+                    <div class="flex justify-between items-start border-b border-white/10 pb-3 mb-4">
+                        <div>
+                            <p class="font-bold text-xl text-white shadow-sm glow-text">${r.product}</p>
+                            <p class="text-sm text-indigo-300 font-semibold mt-1">${new Date(r.createdAt).toLocaleString()}</p>
+                        </div>
+                        <div class="text-yellow-400 text-xl tracking-widest drop-shadow">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+                    </div>
+                    <p class="text-slate-100 whitespace-pre-wrap text-lg">"${r.review}"</p>
+                    
+                    ${r.images && r.images.length > 0 ? `
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        ${r.images.map(img => `<img src="${img}" class="w-24 h-24 object-cover rounded-lg border border-white/10 shadow-md hover:scale-105 transition-transform cursor-pointer" onclick="window.open('${img}')">`).join('')}
+                    </div>
+                    ` : ''}
+
+                    ${adminReplyBlock}
+                </div>`;
+            });
+        }
+        document.getElementById("historyList").innerHTML = listStr;
+        
+    } catch(err) {
+        alert("Failed to fetch reviews");
+        submitBtn.innerText = "Fetch Reviews";
+    }
+};
+</script>
+
+</body>
+</html>

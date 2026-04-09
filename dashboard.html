@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    background-attachment: fixed;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+}
+/* Glassmorphism Classes */
+.glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+.glass-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+.glass-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+}
+.glass-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.glow-text { text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+
+.watermark{
+position:fixed;
+bottom:20px;
+right:20px;
+font-size:80px;
+opacity:0.05;
+font-weight:bold;
+color:#0284c7;
+pointer-events:none;
+}
+
+/* Selected filter option */
+.selected{
+background:#bae6fd;
+color:#0369a1;
+border-radius:6px;
+}
+
+/* Review card hover */
+.review-card{
+transition:all 0.2s ease;
+}
+.review-card:hover{
+transform:scale(1.02);
+box-shadow:0 8px 18px rgba(0,0,0,0.08);
+}
+
+/* Graph modal animation */
+@keyframes modalFade{
+from{opacity:0; transform:scale(0.95);}
+to{opacity:1; transform:scale(1);}
+}
+.animate-modal{
+animation:modalFade 0.25s ease;
+}
+
+/* Tracker Styles */
+.tracker-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+.tracker-container::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 40px;
+    right: 40px;
+    height: 4px;
+    background: #e2e8f0; /* slate-200 */
+    border-radius: 2px;
+    z-index: 0;
+}
+#adminTrackerProgress {
+    position: absolute;
+    top: 19px;
+    left: 40px;
+    height: 6px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #3b82f6, #4f46e5); /* modern connection */
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.3);
+    z-index: 1;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 0%;
+}
+.node {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100px;
+}
+.circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+.node.active .circle {
+    background: linear-gradient(135deg, #3b82f6, #4f46e5);
+    border-color: white;
+    color: white;
+    box-shadow: 0 0 15px rgba(79, 70, 229, 0.4);
+    transform: scale(1.1);
+}
+.node-title {
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    color: #475569;
+}
+</style>
+</head>
+
+<body class="p-8 text-white min-h-screen">
+
+<div class="watermark text-white/5">ABC Trading Company</div>
+
+<!-- TOP NAV -->
+<div class="glass p-6 rounded-2xl shadow-xl mb-6 flex justify-between items-center px-8">
+    <h1 class="text-3xl font-extrabold glow-text tracking-tight">
+    Admin Dashboard
+    </h1>
+    <div class="space-x-4">
+        <button onclick="openOrderManager()" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1 font-bold">
+            Manage Orders 📦
+        </button>
+        <button onclick="logout()" class="border border-white/20 hover:bg-white/10 text-white px-6 py-3 rounded-xl transition font-bold shadow-sm">Logout</button>
+    </div>
+</div>
+
+<!-- FILTER (TOP LEFT) -->
+<div class="mb-6 relative">
+
+<button id="filterBtn"
+class="glass hover:-translate-y-1 hover:shadow-lg text-white font-bold px-6 py-2 rounded-xl transition">
+Filter Reviews 🔽
+</button>
+
+<div id="filterMenu"
+class="hidden glass absolute top-12 left-0 p-4 rounded-xl shadow-xl mt-2 w-72 z-40">
+
+<p class="font-bold text-indigo-200">Sort By Rating</p>
+<p class="ml-4 sort-option cursor-pointer hover:text-white transition mt-1">Ascending</p>
+<p class="ml-4 sort-option cursor-pointer hover:text-white transition mt-1">Descending</p>
+
+<p class="font-bold mt-4 text-indigo-200">Products</p>
+<p class="ml-4 product-filter cursor-pointer hover:text-white transition mt-1">cPVC Pipes</p>
+<p class="ml-4 product-filter cursor-pointer hover:text-white transition mt-1">uPVC Pipes</p>
+<p class="ml-4 product-filter cursor-pointer hover:text-white transition mt-1">Brass Elbows</p>
+<p class="ml-4 product-filter cursor-pointer hover:text-white transition mt-1">SWR Pipes</p>
+<p class="ml-4 product-filter cursor-pointer hover:text-white transition mt-1">Curve Pipes</p>
+<p class="ml-4 product-filter cursor-pointer hover:text-white transition mt-1">Other Fittings</p>
+<p class="ml-4 product-filter cursor-pointer hover:text-white transition mt-1">Tanks</p>
+
+<div class="flex justify-end mt-4">
+<button id="applyFilter"
+class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold px-4 py-1 rounded shadow-md hover:-translate-y-1 transition">
+Save
+</button>
+</div>
+
+</div>
+</div>
+
+<!-- AVERAGE RATING -->
+<div class="glass p-6 rounded-2xl shadow-xl mb-6 text-center max-w-sm">
+<h2 class="text-xl font-bold text-indigo-200">Average Rating</h2>
+<p id="avgRating" class="text-3xl mt-2 font-extrabold text-yellow-400 drop-shadow"></p>
+</div>
+
+<!-- REVIEWS 3-COLUMN KANBAN -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Unattended Reviews -->
+    <div class="glass rounded-xl p-4 shadow-xl flex flex-col h-[70vh]">
+        <h3 class="text-lg font-bold text-indigo-100 text-center border-b border-indigo-400/20 pb-2 mb-4 py-2">Unattended Reviews</h3>
+        <div id="colUnattended" class="space-y-4 overflow-y-auto flex-1 p-2"></div>
+    </div>
+
+    <!-- Seen Reviews -->
+    <div class="glass rounded-xl p-4 shadow-xl flex flex-col h-[70vh]">
+        <h3 class="text-lg font-bold text-indigo-100 text-center border-b border-indigo-400/20 pb-2 mb-4 py-2">Seen Reviews</h3>
+        <div id="colSeen" class="space-y-4 overflow-y-auto flex-1 p-2"></div>
+    </div>
+
+    <!-- Finalized Reviews -->
+    <div class="glass rounded-xl p-4 shadow-xl flex flex-col h-[70vh]">
+        <h3 class="text-lg font-bold text-emerald-300 text-center border-b border-emerald-400/30 pb-2 mb-4 py-2">Finalized Reviews</h3>
+        <div id="colFinalized" class="space-y-4 overflow-y-auto flex-1 p-2"></div>
+    </div>
+</div>
+
+<!-- GRAPH MODAL -->
+<div id="graphModal"
+class="hidden fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
+
+<div class="bg-white p-6 rounded shadow text-center animate-modal">
+
+<h2 class="text-lg font-semibold mb-4">Customer Visit Trend</h2>
+
+<canvas id="visitChart"></canvas>
+
+<button onclick="closeGraph()"
+class="bg-sky-500 text-white px-4 py-2 rounded mt-4 hover:bg-sky-600 transition">
+Back
+</button>
+
+</div>
+</div>
+
+<!-- ORDER MANAGER OVERLAY -->
+<div id="orderManagerOverlay" class="hidden fixed inset-0 bg-[#0f172a] bg-opacity-95 backdrop-blur-xl z-50 flex flex-col h-screen fade">
+    <!-- Header -->
+    <div class="px-8 py-4 glass flex justify-between items-center relative z-10 shadow-xl border-b-0 m-6 mb-0 rounded-2xl">
+        <h2 class="text-2xl font-extrabold text-white tracking-tight glow-text">Logistics Management</h2>
+        <div class="space-x-3">
+            <button onclick="openAddOrderModal()" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-2 rounded-lg font-bold hover:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1">+ New Customer</button>
+            <button onclick="closeOrderManager()" class="border border-white/20 hover:bg-white/10 text-white px-5 py-2 rounded-lg font-bold transition">Close</button>
+        </div>
+    </div>
+
+    <div class="flex-1 flex flex-col p-6 space-y-6 overflow-hidden">
+        
+        <!-- UPPER BOX: Current Customers (status === 4) -->
+        <div class="glass rounded-xl shadow-xl border-0 flex-1 flex flex-col overflow-hidden min-h-[30vh]">
+            <div class="p-4 bg-black/20 border-b border-white/10">
+                <h3 class="text-xl font-bold text-indigo-100 px-2 glow-text">Customers Directory</h3>
+            </div>
+            <div id="completedOrdersList" class="p-4 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-max">
+                <!-- Completed Orders go here -->
+            </div>
+        </div>
+
+        <!-- LOWER BOX: Current Orders (status < 4) + Flowchart -->
+        <div class="glass rounded-xl shadow-xl flex-1 flex overflow-hidden min-h-[40vh]">
+            <!-- Left: List -->
+            <div class="w-1/3 border-r border-white/10 flex flex-col bg-black/10">
+                <div class="p-4 border-b border-white/10 bg-black/20">
+                    <h3 class="text-xl font-bold text-indigo-100 px-2 glow-text">Active Shipments</h3>
+                </div>
+                <div id="activeOrdersList" class="p-4 overflow-y-auto flex-1 space-y-3">
+                    <!-- Active Orders go here -->
+                </div>
+            </div>
+            <!-- Right: Flowchart -->
+            <div class="w-2/3 flex flex-col justify-center relative overflow-hidden p-6 bg-transparent">
+                <!-- Fallback empty state -->
+                <div id="emptyTrackerBox" class="text-center text-indigo-200/50 font-bold m-auto">
+                    Select a Current Order to view and update its flowchart.
+                </div>
+
+                <!-- Interactive Flowchart -->
+                <div id="adminTrackerBox" class="hidden w-full fade mx-auto max-w-4xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-bold flex-1 text-center text-white glow-text" id="adminTrackerHeader">Update Status</h3>
+                    </div>
+                    
+                    <div class="flex justify-between items-center border-b border-white/10 pb-4 mb-6">
+                        <p class="text-indigo-200 font-semibold flex-1 text-center">Order #: <span id="adminTrackerId" class="tracking-widest text-white"></span></p>
+                        
+                        <!-- PAYMENT TOGGLE -->
+                        <div class="flex items-center space-x-2 bg-black/20 border border-white/10 px-4 py-2 rounded-lg">
+                            <span class="font-bold text-sm text-indigo-100">Payment:</span>
+                            <button id="adminPaymentToggleBtn" onclick="togglePaymentStatus()" class="w-24 px-3 py-1 text-sm font-bold rounded shadow-sm transition">Pending</button>
+                        </div>
+                    </div>
+                    
+                    <div class="tracker-container px-4">
+                        <div id="adminTrackerProgress" style="left:40px; right:40px;"></div>
+                        
+                        <div class="node cursor-pointer group" id="admin-node-0" onclick="updateOrderStatus(0)">
+                            <div class="circle group-hover:ring-4 ring-sky-300 transition">1</div>
+                            <div class="node-title">Order Placed</div>
+                        </div>
+                        <div class="node cursor-pointer group" id="admin-node-1" onclick="updateOrderStatus(1)">
+                            <div class="circle group-hover:ring-4 ring-sky-300 transition">2</div>
+                            <div class="node-title">Order Ready</div>
+                        </div>
+                        <div class="node cursor-pointer group" id="admin-node-2" onclick="updateOrderStatus(2)">
+                            <div class="circle group-hover:ring-4 ring-sky-300 transition">3</div>
+                            <div class="node-title">Dispatched</div>
+                        </div>
+                        <div class="node cursor-pointer group" id="admin-node-3" onclick="updateOrderStatus(3)">
+                            <div class="circle group-hover:ring-4 ring-sky-300 transition">4</div>
+                            <div class="node-title">Delivered</div>
+                        </div>
+                        <div class="node cursor-pointer group" id="admin-node-4" onclick="updateOrderStatus(4)">
+                            <div class="circle group-hover:ring-4 ring-sky-300 transition">5</div>
+                            <div class="node-title">Review Received</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ADD NEW CUSTOMER MODAL -->
+<div id="addOrderModal" class="hidden fixed inset-0 bg-[#0f172a] bg-opacity-80 backdrop-blur-md flex items-center justify-center z-[60]">
+    <div class="glass p-8 rounded-2xl w-[400px] relative fade border-white/20">
+        <h2 class="text-3xl font-extrabold mb-6 border-b border-white/10 pb-4 glow-text uppercase tracking-widest text-sm text-center">Add New Customer</h2>
+        <form id="addOrderForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-indigo-200 mb-1">Firm Name</label>
+                <input type="text" id="newFirmName" class="w-full p-3 rounded-lg glass-input font-bold" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-indigo-200 mb-1">Customer Name</label>
+                <input type="text" id="newCustName" class="w-full p-3 rounded-lg glass-input font-bold" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-indigo-200 mb-1">Address</label>
+                <textarea id="newAddress" rows="2" class="w-full p-3 rounded-lg glass-input font-bold" required></textarea>
+            </div>
+            <div class="flex space-x-2 pt-4">
+                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 rounded-xl font-bold hover:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1">Create</button>
+                <button type="button" onclick="closeAddOrderModal()" class="flex-1 border border-white/20 hover:bg-white/10 text-white py-3 rounded-xl font-bold transition">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

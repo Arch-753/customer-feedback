@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Track Your Order</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* Soothing Static Dark Background */
+body {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    background-attachment: fixed;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+}
+
+.watermark {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 80px;
+    opacity: 0.05;
+    font-weight: bold;
+    color: white;
+    pointer-events: none;
+}
+.fade { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity:0; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Glassmorphism Classes */
+.glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+.glass-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+}
+.glass-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.glow-text { text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+
+/* Tracker Styles */
+.tracker-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+/* The background connecting line */
+.tracker-container::before {
+    content: '';
+    position: absolute;
+    top: 20px; /* middle of the 40px circles */
+    left: 40px;
+    right: 40px;
+    height: 4px;
+    background: #cbd5e1; /* gray-300 */
+    z-index: 0;
+}
+/* The active green connecting line */
+#trackerProgress {
+    position: absolute;
+    top: 20px;
+    left: 40px;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #4f46e5, #0ea5e9);
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
+    z-index: 1;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 0%; /* updated via JS */
+}
+
+.node {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100px;
+}
+
+.circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 3px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    transition: all 0.5s ease;
+}
+
+.node.active .circle {
+    background: linear-gradient(135deg, #3b82f6, #4f46e5);
+    border-color: #fff;
+    box-shadow: 0 0 15px rgba(79, 70, 229, 0.6);
+    transform: scale(1.1);
+}
+
+.node-title {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    color: #e2e8f0;
+}
+
+.node-message {
+    margin-top: 5px;
+    font-size: 11px;
+    text-align: center;
+    color: #cbd5e1;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.4s ease;
+}
+.node.active .node-message {
+    opacity: 1; /* Shown when active */
+}
+
+</style>
+</head>
+
+<body class="flex flex-col items-center justify-center min-h-screen px-4">
+
+<div class="watermark">ABC Trading Company</div>
+
+<!-- Initial Prompt Box -->
+<div id="searchBox" class="glass p-8 rounded-2xl max-w-md w-full text-center fade">
+    <h2 class="text-3xl font-bold mb-2 glow-text">Track Your Order</h2>
+    <p class="text-sm text-indigo-200 mb-6">Enter your 6-digit Order ID</p>
+    
+    <div class="flex space-x-2">
+        <input type="text" id="orderIdInput" placeholder="e.g. 123456" 
+            class="flex-1 p-3 rounded-lg glass-input font-bold text-center tracking-widest text-lg">
+        <button onclick="fetchOrder()" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-2 rounded-lg hover:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1 font-bold">
+            Search
+        </button>
+    </div>
+    <p id="errorMsg" class="text-red-400 text-sm mt-4 hidden font-bold">Order not found.</p>
+</div>
+
+<!-- Order Status UI (Hidden Initially) -->
+<div id="statusBox" class="hidden w-full max-w-5xl fade">
+    
+    <div class="glass p-8 rounded-2xl relative">
+        <button onclick="goBack()" class="absolute top-4 left-4 text-indigo-200 font-bold hover:text-white transition">← Back</button>
+        
+        <h2 class="text-3xl font-extrabold text-center mt-4 glow-text">Order Status</h2>
+        <div class="text-center mt-2 font-semibold text-lg flex flex-col items-center">
+            <p class="text-indigo-100">Order #: <span id="displayOrderId" class="tracking-widest text-white"></span></p>
+            <p id="displayDetails" class="text-sm text-indigo-200 mb-2"></p>
+            <div id="paymentBadge" class="mt-2 text-sm px-3 py-1 rounded inline-block font-bold"></div>
+        </div>
+
+        <div class="tracker-container">
+            <div id="trackerProgress"></div>
+            
+            <div class="node" id="node-0">
+                <div class="circle">1</div>
+                <div class="node-title">Order Placed</div>
+                <div class="node-message">We have received your order details.</div>
+            </div>
+            <div class="node" id="node-1">
+                <div class="circle">2</div>
+                <div class="node-title">Order Ready</div>
+                <div class="node-message">Few hours to go for your order to reach your doorstep.</div>
+            </div>
+            <div class="node" id="node-2">
+                <div class="circle">3</div>
+                <div class="node-title">Dispatched</div>
+                <div class="node-message">Your order has left our facility and is on its way.</div>
+            </div>
+            <div class="node" id="node-3">
+                <div class="circle">4</div>
+                <div class="node-title">Delivered</div>
+                <div class="node-message">Your package has been safely delivered.</div>
+            </div>
+            <div class="node" id="node-4">
+                <div class="circle">5</div>
+                <div class="node-title">Review Received</div>
+                <div class="node-message">Feedback recorded. Thank you!</div>
+            </div>
+        </div>
+
+        <!-- Completion Message -->
+        <div id="completionMsg" class="hidden text-center mt-8 p-4 bg-white/10 border border-white/20 rounded-xl text-white font-bold text-xl fade shadow-lg">
+            Thank you for shopping with us. Do visit ABC Trading Company again! ✨
+        </div>
+
+    </div>
+</div>
+
+<script>
+    async function fetchOrder() {
+        let input = document.getElementById("orderIdInput").value.trim();
+        let err = document.getElementById("errorMsg");
+        if(!input) return;
+
+        err.classList.add("hidden");
+
+        try {
+            let res = await fetch('/api/orders/track/' + input);
+            let data = await res.json();
+            
+            if(res.status === 200) {
+                renderOrder(data);
+            } else {
+                err.innerText = data.message || "Order not found";
+                err.classList.remove("hidden");
+            }
+        } catch(e) {
+            err.innerText = "Network Error";
+            err.classList.remove("hidden");
+        }
+    }
+
+    function renderOrder(order) {
+        document.getElementById("searchBox").classList.add("hidden");
+        document.getElementById("statusBox").classList.remove("hidden");
+
+        document.getElementById("displayOrderId").innerText = order.orderId;
+        document.getElementById("displayDetails").innerText = `${order.firmName} | ${order.customerName} | ${order.address}`;
+
+        let badge = document.getElementById("paymentBadge");
+        if(order.isPaid) {
+            badge.innerText = "Payment: Received";
+            badge.className = "mt-2 text-sm px-3 py-1 rounded inline-block font-bold bg-green-500/20 border border-green-400 text-green-300";
+        } else {
+            badge.innerText = "Payment: Pending";
+            badge.className = "mt-2 text-sm px-3 py-1 rounded inline-block font-bold bg-amber-500/20 border border-amber-400 text-amber-200";
+        }
+
+        let status = order.statusNode || 0; // 0 to 4
+
+        // Reset all
+        for(let i=0; i<=4; i++) {
+            document.getElementById("node-"+i).classList.remove("active");
+        }
+        
+        // Active up to current status
+        for(let i=0; i<=status; i++) {
+            document.getElementById("node-"+i).classList.add("active");
+        }
+
+        // Calculate progress bar width (0%, 25%, 50%, 75%, 100%)
+        let progressPercent = (status / 4) * 100;
+        document.getElementById("trackerProgress").style.width = `calc(${progressPercent}% - 40px)`; 
+        // Note: the -40px logic adjusts for the padded edges so the green line doesn't overshoot the last circle
+
+        if(status === 4) {
+            document.getElementById("completionMsg").classList.remove("hidden");
+        } else {
+            document.getElementById("completionMsg").classList.add("hidden");
+        }
+    }
+
+    function goBack() {
+        document.getElementById("statusBox").classList.add("hidden");
+        document.getElementById("searchBox").classList.remove("hidden");
+        document.getElementById("orderIdInput").value = "";
+    }
+</script>
+
+</body>
+</html>
